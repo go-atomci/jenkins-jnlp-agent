@@ -13,7 +13,7 @@ LABEL Description="This is a base image, which provides the Jenkins agent execut
 
 ARG AGENT_WORKDIR=/home/${user}/agent
 
-RUN apk add --update --no-cache curl bash git git-lfs openssh-client openssl procps python2\
+RUN apk add --update --no-cache curl bash git git-lfs openssh-client openssl procps python3\
   && curl --create-dirs -fsSLo /usr/share/jenkins/slave.jar https://repo.jenkins-ci.org/public/org/jenkins-ci/main/remoting/${VERSION}/remoting-${VERSION}.jar \
   && chmod 755 /usr/share/jenkins \
   && chmod 644 /usr/share/jenkins/slave.jar 
@@ -31,7 +31,7 @@ RUN set -ex; \
 	\
 	wget -O get-pip.py 'https://bootstrap.pypa.io/get-pip.py'; \
 	\
-	python get-pip.py \
+	python3 get-pip.py \
 		--disable-pip-version-check \
 		--no-cache-dir \
 		"pip==$PYTHON_PIP_VERSION" \
@@ -46,7 +46,7 @@ RUN set -ex; \
 		\) -exec rm -rf '{}' +; \
 	rm -f get-pip.py
 
-RUN pip install gitpython svn requests
+RUN pip install gitpython requests
 
 RUN mkdir -p /home/admin/devops_workspace \
     && chmod 777 -R /home/admin/devops_workspace
