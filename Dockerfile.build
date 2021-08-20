@@ -1,0 +1,66 @@
+FROM openjdk:8-jdk-alpine
+
+ARG VERSION=3.29
+ARG user=jenkins
+ARG group=jenkins
+ARG uid=1000
+ARG gid=1000
+
+ENV HOME /home/${user}
+RUN addgroup -g ${gid} ${group}
+RUN adduser -h $HOME -u ${uid} -G ${group} -D ${user}
+LABEL Description="This is a base image, which provides the Jenkins agent executable (slave.jar)" Vendor="Jenkins project" Version="${VERSION}"
+
+ARG AGENT_WORKDIR=/home/${user}/agent
+
+RUN apk add --update --no-cache curl bash git git-lfs openssh-client openssl procps python2\
+  && curl --create-dirs -fsSLo /usr/share/jenkins/slave.jar https://repo.jenkins-ci.org/public/org/jenkins-ci/main/remoting/${VERSION}/remoting-${VERSION}.jar \
+  && chmod 755 /usr/share/jenkins \
+  && chmod 644 /usr/share/jenkins/slave.jar 
+#  && apk del curl
+
+RUN apk add --update --no-cache tcpdump
+
+# ensure local python is preferred over distribution python
+ENV PATH /usr/local/bin:$PATH
+
+# if this is called "PIP_VERSION", pip explodes with "ValueError: invalid truth value '<VERSION>'"
+ENV PYTHON_PIP_VERSION 19.1.1
+
+RUN set -ex; \
+	\
+	wget -O get-pip.py 'https://bootstrap.pypa.io/get-pip.py'; \
+	\
+	python get-pip.py \
+		--disable-pip-version-check \
+		--no-cache-dir \
+		"pip==$PYTHON_PIP_VERSION" \
+	; \
+	pip --version; \
+	\
+	find /usr/local -depth \
+		\( \
+			\( -type d -a \( -name test -o -name tests \) \) \
+			-o \
+			\( -type f -a \( -name '*.pyc' -o -name '*.pyo' \) \) \
+		\) -exec rm -rf '{}' +; \
+	rm -f get-pip.py
+
+RUN pip install gitpython svn requests
+
+RUN mkdir -p /home/admin/devops_workspace \
+    && chmod 777 -R /home/admin/devops_workspace
+
+LABEL maintainer="colynn <colynn.liu@gmail.com>"
+
+USER ${user}
+ENV AGENT_WORKDIR=${AGENT_WORKDIR}
+RUN mkdir /home/${user}/.jenkins && mkdir -p ${AGENT_WORKDIR}
+
+VOLUME /home/${user}/.jenkins
+VOLUME ${AGENT_WORKDIR}
+WORKDIR /home/${user}
+
+COPY jenkins-slave /usr/local/bin/jenkins-slave
+
+ENTRYPOINT ["jenkins-slave"]

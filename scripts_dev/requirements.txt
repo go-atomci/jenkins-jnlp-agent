@@ -1,0 +1,3 @@
+gitpython==2.1.8
+#svn==0.3.45
+requests
