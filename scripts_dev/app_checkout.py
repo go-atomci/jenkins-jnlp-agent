@@ -18,10 +18,6 @@ import commands
 reload(sys)
 sys.setdefaultencoding('utf-8')
 
-try:
-    import xml.etree.cElementTree as ET
-except ImportError:
-    import xml.etree.ElementTree as ET
 
 BASE_DIR = os.environ['JENKINS_SLAVE_WORKSPACE']
 REPO_CNF = json.loads(os.environ['REPO_CNF'])
@@ -52,7 +48,7 @@ def parse_args():
     parser.add_argument("--branch-url", metavar="branch_url", type=str,
                         required=True, help="代码分支路径")
     parser.add_argument("--vcs-type", metavar="vcs_type", type=str,
-                        required=True, help="版本管理工具(git/svn)")
+                        required=True, help="版本管理工具(git)")
     parser.add_argument("--image-version", metavar="image_version", type=str,
                         required=False, help="自定义镜像版本")
     parser.add_argument("--stage-id", metavar="stage_id", type=str,
