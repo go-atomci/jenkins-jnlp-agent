@@ -9,8 +9,6 @@ import requests
 import argparse
 from datetime import datetime
 
-reload(sys)
-sys.setdefaultencoding('utf-8')
 ACCESS_TOKEN = os.environ['ACCESS_TOKEN']
 headers = {"Content-Type": "application/json",
            "Authorization": "Bearer {}".format(ACCESS_TOKEN)}

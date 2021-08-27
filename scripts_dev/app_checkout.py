@@ -13,11 +13,6 @@ import svn.exception as svn_exception
 import subprocess
 import json
 import traceback
-import commands
-
-reload(sys)
-sys.setdefaultencoding('utf-8')
-
 
 BASE_DIR = os.environ['JENKINS_SLAVE_WORKSPACE']
 REPO_CNF = json.loads(os.environ['REPO_CNF'])
