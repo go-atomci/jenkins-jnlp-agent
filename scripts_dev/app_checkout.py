@@ -74,15 +74,18 @@ def call_subprocess_str(cmd=None, workspace=None):
         sys.exit(1)
     return str(p.stdout.read()).strip()
 
-
 def hide_auth_info(username, password, error_info):
     error_info = str(error_info)
+    if len(username) == 0 or len(password) == 0:
+        return error_info
     new_info = error_info.replace(username + ":" + password + '@', '****:****@')
     return new_info
 
 
 def hide_auth_svn_info(username, password, error_info):
     error_info = str(error_info)
+    if len(username) == 0 or len(password) == 0:
+        return error_info
     new_info = error_info.replace("'--username', '" + username + "'", "'--username', ****"). \
         replace("'--password', '" + password + "'", "'--password', ****")
     new_info = new_info.replace("'--username', u'" + username + "'", "'--username', ****"). \
@@ -109,8 +112,12 @@ class BuildStep(object):
 
     def prepare_workspace(self):
         print_message(u'----->开始准备工作空间')
-        self.workspace = os.path.join(BASE_DIR, self.args.project_id, self.args.stage_id, self.args.app_name,
-                                      self.args.branch_name)
+        self.workspace = os.path.join(
+            BASE_DIR, 
+            self.args.project_id, 
+            self.args.stage_id, 
+            self.args.app_name,
+            self.args.branch_name)
         if os.path.exists(self.workspace):
             # clean workspace
             print_message(u'----->开始清理工作目录')
@@ -143,7 +150,10 @@ class BuildStep(object):
         username, password = get_repo_auth(self.args.branch_url)
         branch_url = self.args.branch_url
         try:
-            remote = svn.remote.RemoteClient(branch_url, username=username, password=password)
+            if len(username) == 0 or len(password) == 0:
+                remote = svn.remote.RemoteClient(branch_url)
+            else:
+                remote = svn.remote.RemoteClient(branch_url, username=username, password=password)
             print_message(u'----->svn: 检出分支({})'.format(branch_url))
             remote.checkout(self.workspace)
             self.current_revision = self.origin_revision = self.image_version = remote.info().get('commit_revision')
@@ -157,7 +167,10 @@ class BuildStep(object):
         parts = self.args.branch_url.split('://')
         if not parts[1].endswith('.git'):
             parts[1] = parts[1] + '.git'
-        repo_url = '{}://{}:{}@{}'.format(parts[0], username, password, parts[1])
+        if len(username) == 0 or len(password) == 0:
+            repo_url = '{}://{}'.format(parts[0], parts[1])
+        else:
+            repo_url = '{}://{}:{}@{}'.format(parts[0], username, password, parts[1])
         try:
             print_message(u'----->git: 检出分支({})'.format(self.args.branch_name))
             repo = git.Repo.clone_from(repo_url, self.workspace, branch=self.args.branch_name)
@@ -167,27 +180,6 @@ class BuildStep(object):
             info = hide_auth_info(username, password, e)
             print_message(info)
             sys.exit(1)
-
-    def compile(self):
-        if self.args.app_language.upper() == 'JAVA':
-            self._java_compile()
-
-    def jacoco_test(self):
-        call_subprocess([MVN_BIN,
-                         '-DDEPLOY_ENV=test',
-                         'org.jacoco:jacoco-maven-plugin:prepare-agent',
-                         'test',
-                         '-Dmaven.test.failure.ignore=true', self.repo_local], self.ci_workspace)
-
-    def _java_compile(self):
-
-        print_message(u'--------------------->开始执行JAVA代码编译打包')
-        call_subprocess([MVN_BIN, '-B', '-U', 'clean', 'package', '-Dmaven.test.skip=true', self.repo_local],
-                        self.ci_workspace)
-        if self.args.unit_test.lower() == 'true':
-            print_message(u'--------------------->开始执行单元覆盖率测试')
-            self.jacoco_test()
-
 
 if __name__ == "__main__":
     args = parse_args()
